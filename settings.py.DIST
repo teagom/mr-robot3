@@ -1,0 +1,44 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+'''
+    settings
+'''
+# array size
+model = [False]*104
+
+# debug mode. Show command line to debug
+debug = True
+
+# avoid to use 100% of CPU
+# set os.nice()
+# https://docs.python.org/2.7/library/os.html#os.setpriority
+# https://www.geeksforgeeks.org/python-os-nice-method/
+nice = False # False or Integer, +increase -decrease
+
+# format "%A-%d-%B-%Y_%Hh%M"
+# touch  file format:   'sunday-14-Jul-2021_13h21'
+# output                datetime-start-'sunday-14-Jul-2021_13h21'
+# output                datetime-end-'sunday-14-Jul-2021_13h24'
+# https://strftime.org/
+touch_format = "%A-%d-%B-%Y_%Hh%M"
+touch_start = 'datetime0-start-'
+touch_end = 'datetime1-end-'
+
+# include at report email
+# fail log are included by default
+# if not empty
+report_log_success = False
+
+# email subject
+email_subject = 'Mr-robot3 Backup'
+
+# smtp
+smtp_test = False
+
+# smtp settings
+smtp_sender = 'no-reply@domain.com'
+smtp_username = "username"
+smtp_password = "password"
+smtp_server = 'smtp.domain.com'
+smtp_port = 465
