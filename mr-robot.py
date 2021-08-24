@@ -36,7 +36,7 @@ for cfg in args.integers:
     # test smtp
     if settings.smtp_test:
         print('\n! Testing SMTP settings...')
-        sendmail(x[5], x[0], False, False, False, True, False)
+        sendmail(x[4], x[0], False, False, False, True, False)
         sys.exit('> Break script. Set SMTP test to False to continue.')
 
 
