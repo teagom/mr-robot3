@@ -41,7 +41,7 @@ for cfg in args.integers:
 
 
     # # # # # # # # # # # # # # # # # # # # # # # #
-    # create destiny folder and logs
+    # create destination folder and logs
     # root folder to app backup
     # *** WARNING! CAN NOT BE '/' , can delete ALL servers FILE!
     # default '/tmp'
@@ -235,29 +235,160 @@ for cfg in args.integers:
 
 
     # # # # # # # # # # # # # # # # # # # # # # # #
-    # Rsync to external hard disk
+    # connection rsync/copy to localhost external
+    # hard disk, usb, smb mountpoint, other
     if x[30]:
-        print('! Rsync to external hard disk')
+        print('! Rsync to local host external hard disk')
+        '''
+        nao é necessario copiar em TMP para depois o destino final
+        localhost pode ser copiado diretamente para o destino final
+        '''
 
-        cmd_destiny_backup_app = 'mkdir -p %s/%s' % (backup_base, x[31])
-        cmd_run(cmd_destiny_backup_app, log, log_err)
+        # mkdir increment destination
+        cmd_destination_backup_app = 'mkdir -p %s/%s' % (x[38], x[34])
+        cmd_run(cmd_destination_backup_app, log, log_err)
 
-        include = ""
-        for xx in x[32]:
-            include += "%s " % xx
+        # # #
+        # incremental section
+        backup_incremental = False
+        if x[32]:
+            backup_incremental = x[34]
 
-        exclude = ""
-        for xx in x[33]:
-            exclude += "--exclude=\'%s\' " % xx
+            # backup_base section
+            if 'backup_base' in x[32]:
+                x[32].remove('backup_base') # remove string
 
-        rsync = "rsync %s %s %s %s/%s" % (x[44] , exclude , include , backup_base , x[31])
-        cmd_run(rsync, log, log_err)
+                src = backup_base # add path
+                dst = backup_incremental
+                log_write(log_resume, (' Connection Rsync/Copy incremental: %s' % (dst)))
+
+                cmd = "%s %s %s/%s" % (x[31] , backup_base , x[38], x[34])
+                print('\n! Copy backup: %s' % cmd)
+                cmd_run(cmd, log, log_err)
+
+            # backup_mysql section
+            if 'backup_mysql' in x[32]:
+                x[32].remove('backup_mysql')
+
+                src = backup_mysql
+                dst = u"%s/%s" % (backup_incremental, 'db-mysql')
+                log_write(log_resume, (' Connection rsync/copy incremental: %s' % (dst)))
+
+                #cmd = "%s %s %s" % (x[31] , backup_mysql, dst)
+                cmd = "%s %s %s/%s" % (x[31] , backup_mysql, x[38], x[34])
+                print('\n! Copy backup mysql: %s' % cmd)
+                cmd_run(cmd, log, log_err)
+
+            # backup_postgresq section
+            # todo
+
+            # compress section
+            if 'backup_compress' in x[32]:
+                x[32].remove('backup_compress')
+
+                src = backup_compress
+                dst = u"%s/%s/." % (x[38], backup_incremental)
+                log_write(log_resume, (' Connection rsync/copy incremental: %s' % (dst)))
+
+                cmd = "%s %s %s" % (x[31] , src, dst)
+                print('\n! Copy backup compress: %s' % cmd)
+                cmd_run(cmd, log, log_err)
+
+            # copy others objects
+            if x[32]:
+                for src in x[32]:
+                    dst = u"%s/%s" % (x[38], backup_incremental)
+                    log_write(log_resume, ('Connection rsync/copy incremental: %s' % (dst)))
+
+                    exclude = ""
+                    for xx in x[33]:
+                        exclude += "--exclude=\'%s\' " % xx
+
+                    cmd = "%s %s %s %s" % (x[31], exclude, src, dst)
+                    print('\n! Copy objects: %s' % cmd)
+                    cmd_run(cmd, log, log_err)
+
+        # # #
+        # frequency section
+        backup_frequency = False
+        if x[35]: # not empty
+            # once backup
+            if x[39] == 'once':
+                backup_frequency = '%s/%s/%s' % (x[38], x[37], dateformat('once', x[40]))
+
+            # daily backup
+            if x[39] == 'daily':
+                backup_frequency = '%s/%s' % (x[38], x[37], dateformat('daily', x[40]))
+
+            # weekly backup
+            if x[39] == 'week-full':
+                backup_frequency = '%s/%s/%s' % (x[38], x[37], dateformat('week-full', x[40]))
+
+            # monthly backup
+            if x[39] == 'month-full':
+                backup_frequency = '%s/%s/%s' % (x[38], x[37], dateformat('month-full', x[40]))
+
+            # mkdir frequency destination
+            cmd = 'mkdir -p %s' % (backup_frequency)
+            cmd_run(cmd, log, log_err)
+
+            # backup_base section
+            if 'backup_base' in x[35]:
+                x[35].remove('backup_base') # remove string
+                src = backup_base
+                dst = backup_frequency
+                log_write(log_resume, (' Connection Rsync/Copy frequency: %s' % (dst)))
+                cmd = "%s %s/* %s/." % (x[31] , src , dst)
+                print('\n! Copy backup: %s' % cmd)
+                cmd_run(cmd, log, log_err)
+
+
+            # backup_mysql section
+            if 'backup_mysql' in x[35]:
+                x[35].remove('backup_mysql')
+
+                src = backup_mysql
+                dst = u"%s/%s" % (backup_frequency, 'db-mysql')
+
+                cmd = 'mkdir -p %s' % (dst)
+                cmd_run(cmd, log, log_err)
+
+                log_write(log_resume, (' Connection rsync/copy frequency: %s' % (dst)))
+                cmd = "%s %s %s" % (x[31] , backup_mysql, dst)
+                print('\n! Copy backup mysql: %s' % cmd)
+                cmd_run(cmd, log, log_err)
+
+            # backup_postgresq section
+            # todo
+
+            # compress section
+            if 'backup_compress' in x[32]:
+                x[32].remove('backup_compress')
+                src = backup_compress
+                dst = u"%s/%s/." % (x[38], backup_frequency)
+                log_write(log_resume, (' Connection rsync/copy incremental: %s' % (dst)))
+
+                cmd = "%s %s %s" % (x[31] , src, dst)
+                print('\n! Copy backup compress: %s' % cmd)
+                cmd_run(cmd, log, log_err)
+
+            # copy others objects
+            if x[32]:
+                for src in x[32]:
+                    dst = u"%s/%s" % (x[38], backup_incremental)
+                    log_write(log_resume, ('Connection rsync/copy incremental: %s' % (dst)))
+
+                    exclude = ""
+                    for xx in x[33]:
+                        exclude += "--exclude=\'%s\' " % xx
+
+                    cmd = "%s %s %s %s" % (x[31], exclude, src, dst)
+                    print('\n! Copy objects: %s' % cmd)
+                    cmd_run(cmd, log, log_err)
 
 
     # # # # # # # # # # # # # # # # # # # # # # # #
-    # rsync to remote server
-    # transfer all backup to remote server.
-    # scp from localhost to remote
+    # ssh/rsync to remote server
     if x[40]:
         print('\n! Rsync / ssh to remote server')
 
@@ -324,7 +455,7 @@ for cfg in args.integers:
             # aws + incremental + backup_postgresql
             # todo
 
-            # frequency + compress
+            # incremental + compress
             if 'backup_compress' in x[55]:
                 x[55].remove('backup_compress')
 
@@ -349,25 +480,24 @@ for cfg in args.integers:
 
         # # # # # # # # # # # # #
         # aws frequency section
-        # # # # # # # # # # # # #
         backup_frequency = False
         if x[57]: # to check not empty src list
 
             # once backup
             if x[59] == 'once':
-                backup_frequency = '%s/%s' % (x[58], dateformat('once', x[60]))
+                backup_frequency = '%s/%s' % (x[58], dateformat('once'), x[60])
 
             # daily backup
             if x[59] == 'daily':
-                backup_frequency = '%s/%s' % (x[58], dateformat('daily', x[60]))
+                backup_frequency = '%s/%s' % (x[58], dateformat('daily'), x[60])
 
             # weekly backup
             if x[59] == 'week-full':
-                backup_frequency = '%s/%s' % (x[58], dateformat('week-full', x[60]))
+                backup_frequency = '%s/%s' % (x[58], dateformat('week-full'), x[60])
 
             # monthly backup
             if x[59] == 'month-full':
-                backup_frequency = '%s/%s' % (x[58], dateformat('month-full', x[60]))
+                backup_frequency = '%s/%s' % (x[58], dateformat('month-full'), x[60])
 
             # frequency + base
             if 'backup_base' in x[57]:
@@ -441,27 +571,51 @@ for cfg in args.integers:
     log_write(log_resume, ('Finish  : %s' % (end_time)))
     log_write(log_resume, ('Duration: %s' % (duration)))
 
-
     # # # # # # # # # #
     # log section
-    # aws incremental + log
-    if backup_incremental != False:
-        msg = ('! AWS copy log files to %s/%s' % (x[54],x[56]))
-        print('\n'+msg)
-        src = backup_log
-        dst = u"%s/%s" % (x[56], 'log')
-        cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
-        cmd_run(cmd_aws, log, log_err)
 
-    # aws frequency + log
-    if backup_frequency != False:
-        msg = ('! AWS copy log files to %s/%s frequency' % (x[54],x[56]))
-        print('\n'+msg)
-        src = backup_log
-        dst = u"%s/%s" % (backup_frequency, 'log')
-        cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
-        cmd_run(cmd_aws, log, log_err)
+    # connection aws
+    if x[50]:
+        # incremental
+        if backup_incremental != False:
+            msg = ('! AWS copy log files to %s/%s' % (x[54],x[56]))
+            print('\n'+msg)
+            src = backup_log
+            dst = u"%s/%s" % (x[56], 'log')
+            cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
+            cmd_run(cmd_aws, log, log_err)
 
+        # frequency
+        if backup_frequency != False:
+            msg = ('! AWS copy log files to %s/%s frequency' % (x[54],x[56]))
+            print('\n'+msg)
+            src = backup_log
+            dst = u"%s/%s" % (backup_frequency, 'log')
+            cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
+            cmd_run(cmd_aws, log, log_err)
+
+
+    # connection rsync/copy log
+    if x[20]:
+        # incremental
+        if backup_incremental != False:
+            src = backup_log
+            dst = u"%s/%s" % (x[38], x[34])
+            cmd = "%s %s %s" % (x[31], src, dst)
+            print('\n! Copy objects: %s' % cmd)
+            cmd_run(cmd, log, log_err)
+
+        # frequency
+        if backup_frequency != False:
+            src = backup_log
+            dst = u"%s/%s" % (x[38], x[34])
+            cmd = "%s %s %s" % (x[31], src, dst)
+            print('\n! Copy objects: %s' % cmd)
+            cmd_run(cmd, log, log_err)
+
+    # todo
+    # connection ssh/rsync
+    # connection ftp
 
     # # # # # # # # # #
     # sendmail report section
