@@ -485,19 +485,19 @@ for cfg in args.integers:
 
             # once backup
             if x[59] == 'once':
-                backup_frequency = '%s/%s' % (x[58], dateformat('once'), x[60])
+                backup_frequency = '%s/%s' % (x[58], dateformat('once', x[60]))
 
             # daily backup
             if x[59] == 'daily':
-                backup_frequency = '%s/%s' % (x[58], dateformat('daily'), x[60])
+                backup_frequency = '%s/%s' % (x[58], dateformat('daily', x[60]))
 
             # weekly backup
             if x[59] == 'week-full':
-                backup_frequency = '%s/%s' % (x[58], dateformat('week-full'), x[60])
+                backup_frequency = '%s/%s' % (x[58], dateformat('week-full', x[60]))
 
             # monthly backup
             if x[59] == 'month-full':
-                backup_frequency = '%s/%s' % (x[58], dateformat('month-full'), x[60])
+                backup_frequency = '%s/%s' % (x[58], dateformat('month-full', x[60]))
 
             # frequency + base
             if 'backup_base' in x[57]:
