@@ -297,10 +297,11 @@ for cfg in args.integers:
         if x[55]:
             backup_incremental = x[56]
 
-            # aws incremental + base
+            # aws incremental + backup_base
             if 'backup_base' in x[55]:
                 x[55].remove('backup_base') # remove string
-                src = backup_base
+
+                src = backup_base # add path
                 dst = backup_incremental
                 log_write(log_resume, ('AWS s3 incremental: %s' % (dst)))
 
@@ -308,7 +309,7 @@ for cfg in args.integers:
                 cmd_run(cmd_aws, log, log_err)
                 print('\n! Copy backup base to AWS S3 Bucket: %s' % backup_base)
 
-            # aws + incremental + mysql
+            # aws + incremental + backup_mysql
             if 'backup_mysql' in x[55]:
                 x[55].remove('backup_mysql')
 
@@ -319,6 +320,9 @@ for cfg in args.integers:
                 cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
                 cmd_run(cmd_aws, log, log_err)
                 print('\n! Copy backup mysql to AWS S3 Bucket: %s' % backup_mysql)
+
+            # aws + incremental + backup_postgresql
+            # todo
 
             # frequency + compress
             if 'backup_compress' in x[55]:
@@ -351,19 +355,19 @@ for cfg in args.integers:
 
             # once backup
             if x[59] == 'once':
-                backup_frequency = '%s/%s' % (x[58], dateformat('once'))
+                backup_frequency = '%s/%s' % (x[58], dateformat('once', x[60]))
 
             # daily backup
             if x[59] == 'daily':
-                backup_frequency = '%s/%s' % (x[58], dateformat('daily'))
+                backup_frequency = '%s/%s' % (x[58], dateformat('daily', x[60]))
 
             # weekly backup
             if x[59] == 'week-full':
-                backup_frequency = '%s/%s' % (x[58], dateformat('week-full'))
+                backup_frequency = '%s/%s' % (x[58], dateformat('week-full', x[60]))
 
             # monthly backup
             if x[59] == 'month-full':
-                backup_frequency = '%s/%s' % (x[58], dateformat('month-full'))
+                backup_frequency = '%s/%s' % (x[58], dateformat('month-full', x[60]))
 
             # frequency + base
             if 'backup_base' in x[57]:
