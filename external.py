@@ -146,21 +146,21 @@ def sendmail(to, app, subject=False, attach0=False, attach1=False, smtp_test=Fal
         return True
 
 # date format
-def dateformat(o):
+def dateformat(freq, hour):
     '''
         return date format based in frequency set
     '''
-    if o == 'daily':
-        return datetime.now().strftime("%A-%d_%m_%Y-%HH%MM").lower() # sunday-28_07_2014-14h00m (weekday_day of month-month-year_hour-min)
+    if freq == 'daily':
+        return "%s_%s" % (datetime.now().strftime("%A-%d-%b-%Y").lower(), hour) # sunday-28-dez-2014_14h00
 
-    if o == 'month-full':
-        return datetime.now().strftime("%d-%HH%MM") # 28-14h00m (day of month_hour_min)
+    if freq == 'month-full':
+        return "%s-%s" % (datetime.now().strftime("%d").lower(), hour) # 28-14h00m
 
-    if o == 'week-full':
-        return datetime.now().strftime("%A-%HH%MM").lower() # sunday-14h00m (weekday_hour-min)
+    if freq == 'week-full':
+        return '%s-%s' % (datetime.now().strftime("%A").lower(), hour) # sunday-14h00m
 
-    if o == 'once':
-        return datetime.now().strftime("%HH%MM") # 14h00m (hour-min)
+    if freq == 'once':
+        return  hour # 14h00m (hour-min)
 
 
 def mysqlshow(log, log_err, ignore_list):
