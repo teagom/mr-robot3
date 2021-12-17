@@ -28,7 +28,7 @@ for cfg in args.integers:
 
     # avoid to use 100% of CPU, set NICE at settings.
     # set os.nice()
-    print('\n> Current nice:', os.nice(0))
+    print('\n! Current nice:', os.nice(0))
     if settings.nice:
         os.nice(settings.nice) # set new nice
         print('> New nice:', os.nice(0)) # get nice
@@ -68,34 +68,24 @@ for cfg in args.integers:
     backup_log_cmd = 'mkdir -p %s' % (backup_log)
     cmd_run(backup_log_cmd)
 
-    # log files
-    print('\n! Clean log files')
-    clean_log = 'rm -f %s/*' % backup_log
-    cmd_run(clean_log)
+    from parts.log import log_start
+    log, log_err, log_resume = log_start(settings, x, cfg, backup_base, backup_log)
 
-    print('\n! Creating log files')
-    log = "%s/success.log" % backup_log
-    log_err = "%s/error.log" % backup_log
-    log_resume = "%s/resume.log" % backup_log
-    log_write(log, 'Log')
-    log_write(log_err, 'Log Err')
-    log_write(log_resume, 'Resume')
+    # resume
+    log_write(log_resume, ('Backup tmp dir: %s' % (backup_base)))
+    log_write(log_resume, ('Config file   : %s' % (cfg)))
+    log_write(log_resume, ('Recurrence    : %s\n' % (x[59])))
+    # resume
+    size_base = 0
+    size_mysql = 0
+    size_postgresql = 0
+    size_compress = 0
 
     # touch start file
     start_time = datetime.now()
     touch_log_start = "%s/%s%s" % (backup_log, settings.touch_start, start_time.strftime(settings.touch_format))
     log_write(touch_log_start,'Start')
 
-    # resume
-    log_write(log_resume, ('Backup tmp dir: %s' % (backup_base)))
-    log_write(log_resume, ('Config file   : %s' % (cfg)))
-    log_write(log_resume, ('Recurrence    : %s\n' % (x[59])))
-
-    # resume
-    size_base = 0
-    size_mysql = 0
-    size_postgresql = 0
-    size_compress = 0
 
     # # # # # # # # # # # # # # # # # # # # # # # #
     # dump data base and compress
@@ -189,7 +179,7 @@ for cfg in args.integers:
         backup_compress_file = '/tmp/example/compress/www.tar.gz'
         backup_compress_file = '/tmp/example/compress/etc.tar.gz'
         '''
-        print('\n! Compress file and folder')
+        print('\n! Compress Section file and folder')
 
         dest = 'compress'
         backup_compress = '%s/%s' % (backup_base, dest)
@@ -389,7 +379,7 @@ for cfg in args.integers:
 
     # # # # # # # # # # # # # # # # # # # # # # # #
     # ssh/rsync to remote server
-    if x[40]:
+    if x[70]:
         print('\n! Rsync / ssh to remote server')
 
         if x[45] == "password":
@@ -545,24 +535,11 @@ for cfg in args.integers:
                     cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
                     cmd_run(cmd_aws, log, log_err)
 
-    # end date-time
-    end_time = datetime.now()
-    duration = (end_time - start_time)
-    print('! Start date-time: {}'.format(start_time.strftime(settings.touch_format)))
-    print('! End date-time: {}'.format(end_time.strftime(settings.touch_format)))
-    print('! Duration: {}'.format(duration))
 
-    # touch end
-    touch_log_end = "%s/%s%s" % (backup_log, settings.touch_end, end_time.strftime(settings.touch_format))
-    touch_cmd = 'touch %s' % touch_log_end
-    cmd_run(touch_cmd, log, log_err)
-
-    # # # # # # # # # #
-    # resume section
-    cmd = 'du -sh %s' % (backup_base)
-    size_base = str(os.popen(cmd).read().replace('\n',''))
-    print('> Calculating backup base size...', size_base)
-
+    # # #
+    # resume end
+    from parts.resume import *
+    end_time, duration = resume_finish(settings, log, log_err, backup_base, backup_log, start_time)
     log_write(log_resume, ('\nSize mysql     : %s' % (size_mysql)))
     log_write(log_resume, ('Size postgresql: %s' % (size_postgresql)))
     log_write(log_resume, ('Size compress  : %s' % (size_compress)))
@@ -571,52 +548,17 @@ for cfg in args.integers:
     log_write(log_resume, ('Finish  : %s' % (end_time)))
     log_write(log_resume, ('Duration: %s' % (duration)))
 
-    # # # # # # # # # #
+    # # #
     # log section
+    from parts.log import *
+    log_send_copy_to(x, log, log_err, backup_log, 'aws-s3-bucket')
+    log_send_copy_to(x, log, log_err, backup_log, 'rsync-copy-localhost')
 
-    # connection aws
-    if x[50]:
-        # incremental
-        if backup_incremental != False:
-            msg = ('! AWS copy log files to %s/%s' % (x[54],x[56]))
-            print('\n'+msg)
-            src = backup_log
-            dst = u"%s/%s" % (x[56], 'log')
-            cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
-            cmd_run(cmd_aws, log, log_err)
-
-        # frequency
-        if backup_frequency != False:
-            msg = ('! AWS copy log files to %s/%s frequency' % (x[54],x[56]))
-            print('\n'+msg)
-            src = backup_log
-            dst = u"%s/%s" % (backup_frequency, 'log')
-            cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
-            cmd_run(cmd_aws, log, log_err)
-
-
-    # connection rsync/copy log
-    if x[20]:
-        # incremental
-        if backup_incremental != False:
-            src = backup_log
-            dst = u"%s/%s" % (x[38], x[34])
-            cmd = "%s %s %s" % (x[31], src, dst)
-            print('\n! Copy objects: %s' % cmd)
-            cmd_run(cmd, log, log_err)
-
-        # frequency
-        if backup_frequency != False:
-            src = backup_log
-            dst = u"%s/%s" % (x[38], x[34])
-            cmd = "%s %s %s" % (x[31], src, dst)
-            print('\n! Copy objects: %s' % cmd)
-            cmd_run(cmd, log, log_err)
-
-    # todo
-    # connection ssh/rsync
-    # connection ftp
-
+    # # #
+    # sendmail section
+    #from section.sendmail import *
+    #sendmail()
+    '''
     # # # # # # # # # #
     # sendmail report section
     # if log.err not empty then sendmail to report
@@ -635,3 +577,4 @@ for cfg in args.integers:
         log_write(log, msg)
         clean = 'rm -rf %s' % (backup_base)
         cmd_run(clean, log, log_err)
+    '''
