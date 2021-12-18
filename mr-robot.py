@@ -135,7 +135,6 @@ for cfg in args.integers:
                     # output dbname.tar.gz
                     outputfile_db = u'%s/%s.%s' % (backup_mysql, db, x[6])
                     compact = '%s %s %s %s' % (x[7], x[8], outputfile_db, outputfile_db_tmp)
-                    # lixo final code
                     cmd_run(compact, log, log_err)
 
                     # delete sql tmp file
