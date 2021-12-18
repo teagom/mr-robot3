@@ -127,10 +127,6 @@ config[75] = 'authorized' # authentication type (string), (password|pemfile|auth
 config[76] = '/opt/server-pem-2015.pem' # pem file if [45] is pemfile (string)
 config[77] = 'backup' # user (string) is required for any [45] option
 config[78] = 'password' # password (string)
-# incremental
-config[80] = 'password' # password (string)
-# frequency
-config[86] = 'password' # password (string)
 # end ssh/rsync
 
 
