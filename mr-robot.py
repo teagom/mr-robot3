@@ -6,7 +6,7 @@ import sys, argparse, settings, os
 from slugify import slugify
 from datetime import datetime
 from external import cmd_run, sendmail, dateformat, log_write,\
-        mysqlshow
+        mysqlshow, p_lv0, p_lv1, p_lv2
 
 parser = argparse.ArgumentParser()
 parser.add_argument('integers', metavar='file.py', type=str, nargs='+', help='Python file, parameters to make backup. See example.py')
@@ -47,7 +47,6 @@ for cfg in args.integers:
     # default '/tmp'
 
     backup_base = '%s/%s' % (x[2], x[0])
-    # backup_base = '/tmp/example'
 
     if x[2] == '/' or x[2] == '' or not backup_base:
         sys.exit('> *** WARNING! Backup base dir config[2] can not be / or empty!')
@@ -86,6 +85,10 @@ for cfg in args.integers:
     touch_log_start = "%s/%s%s" % (backup_log, settings.touch_start, start_time.strftime(settings.touch_format))
     log_write(touch_log_start,'Start')
 
+    # Set all sections to False
+    backup_compress = False
+    backup_mysql =  False
+    backup_postgresql =  False
 
     # # # # # # # # # # # # # # # # # # # # # # # #
     # dump data base and compress
@@ -119,7 +122,7 @@ for cfg in args.integers:
             # size
             cmd = 'du -sh %s' % (backup_postgresql)
             size_postgresql = str(os.popen(cmd).read().replace('\n',''))
-            print('> Calculating backup postgresql size...', size_postgresql)
+            p_lv2('Calculating backup postgresql size:%s' % size_postgresql)
 
 
         # mysql
@@ -163,9 +166,9 @@ for cfg in args.integers:
             # mysql size
             cmd = 'du -sh %s' % (backup_mysql)
             size_mysql = str(os.popen(cmd).read().replace('\n',''))
-            print('> Calculating backup mysql size...', size_mysql)
+            p_lv2('Calculating backup mysql size: %s' % size_mysql)
         else:
-            print('\n> No Mysql database to make backup.')
+            p_lv2('No Mysql database to make backup.')
 
 
     # # # # # # # # # # # # # # # # # # # # # # # #
@@ -208,7 +211,7 @@ for cfg in args.integers:
         # size
         cmd = 'du -sh %s' % (backup_compress)
         size_compress = str(os.popen(cmd).read().replace('\n',''))
-        print('> Calculating compress section size...', size_compress)
+        p_lv2('Calculating compress section size: %s' % size_compress)
 
 
     # # # # # # # # # # # # # # # # # # # # # # # #
@@ -224,322 +227,28 @@ for cfg in args.integers:
         cmd_run(c, log, log_err)
 
 
-    # # # # # # # # # # # # # # # # # # # # # # # #
-    # connection rsync/copy to localhost external
-    # hard disk, usb, smb mountpoint, other
-    if x[30]:
-        print('! Rsync to local host external hard disk')
-        '''
-        nao é necessario copiar em TMP para depois o destino final
-        localhost pode ser copiado diretamente para o destino final
-        '''
-
-        # mkdir increment destination
-        cmd_destination_backup_app = 'mkdir -p %s/%s' % (x[38], x[34])
-        cmd_run(cmd_destination_backup_app, log, log_err)
-
-        # # #
-        # incremental section
-        backup_incremental = False
-        if x[32]:
-            backup_incremental = x[34]
-
-            # backup_base section
-            if 'backup_base' in x[32]:
-                x[32].remove('backup_base') # remove string
-
-                src = backup_base # add path
-                dst = backup_incremental
-                log_write(log_resume, (' Connection Rsync/Copy incremental: %s' % (dst)))
-
-                cmd = "%s %s %s/%s" % (x[31] , backup_base , x[38], x[34])
-                print('\n! Copy backup: %s' % cmd)
-                cmd_run(cmd, log, log_err)
-
-            # backup_mysql section
-            if 'backup_mysql' in x[32]:
-                x[32].remove('backup_mysql')
-
-                src = backup_mysql
-                dst = u"%s/%s" % (backup_incremental, 'db-mysql')
-                log_write(log_resume, (' Connection rsync/copy incremental: %s' % (dst)))
-
-                #cmd = "%s %s %s" % (x[31] , backup_mysql, dst)
-                cmd = "%s %s %s/%s" % (x[31] , backup_mysql, x[38], x[34])
-                print('\n! Copy backup mysql: %s' % cmd)
-                cmd_run(cmd, log, log_err)
-
-            # backup_postgresq section
-            # todo
-
-            # compress section
-            if 'backup_compress' in x[32]:
-                x[32].remove('backup_compress')
-
-                src = backup_compress
-                dst = u"%s/%s/." % (x[38], backup_incremental)
-                log_write(log_resume, (' Connection rsync/copy incremental: %s' % (dst)))
-
-                cmd = "%s %s %s" % (x[31] , src, dst)
-                print('\n! Copy backup compress: %s' % cmd)
-                cmd_run(cmd, log, log_err)
-
-            # copy others objects
-            if x[32]:
-                for src in x[32]:
-                    dst = u"%s/%s" % (x[38], backup_incremental)
-                    log_write(log_resume, ('Connection rsync/copy incremental: %s' % (dst)))
-
-                    exclude = ""
-                    for xx in x[33]:
-                        exclude += "--exclude=\'%s\' " % xx
-
-                    cmd = "%s %s %s %s" % (x[31], exclude, src, dst)
-                    print('\n! Copy objects: %s' % cmd)
-                    cmd_run(cmd, log, log_err)
-
-        # # #
-        # frequency section
-        backup_frequency = False
-        if x[35]: # not empty
-            # once backup
-            if x[39] == 'once':
-                backup_frequency = '%s/%s/%s' % (x[38], x[37], dateformat('once', x[40]))
-
-            # daily backup
-            if x[39] == 'daily':
-                backup_frequency = '%s/%s' % (x[38], x[37], dateformat('daily', x[40]))
-
-            # weekly backup
-            if x[39] == 'week-full':
-                backup_frequency = '%s/%s/%s' % (x[38], x[37], dateformat('week-full', x[40]))
-
-            # monthly backup
-            if x[39] == 'month-full':
-                backup_frequency = '%s/%s/%s' % (x[38], x[37], dateformat('month-full', x[40]))
-
-            # mkdir frequency destination
-            cmd = 'mkdir -p %s' % (backup_frequency)
-            cmd_run(cmd, log, log_err)
-
-            # backup_base section
-            if 'backup_base' in x[35]:
-                x[35].remove('backup_base') # remove string
-                src = backup_base
-                dst = backup_frequency
-                log_write(log_resume, (' Connection Rsync/Copy frequency: %s' % (dst)))
-                cmd = "%s %s/* %s/." % (x[31] , src , dst)
-                print('\n! Copy backup: %s' % cmd)
-                cmd_run(cmd, log, log_err)
-
-
-            # backup_mysql section
-            if 'backup_mysql' in x[35]:
-                x[35].remove('backup_mysql')
-
-                src = backup_mysql
-                dst = u"%s/%s" % (backup_frequency, 'db-mysql')
-
-                cmd = 'mkdir -p %s' % (dst)
-                cmd_run(cmd, log, log_err)
-
-                log_write(log_resume, (' Connection rsync/copy frequency: %s' % (dst)))
-                cmd = "%s %s %s" % (x[31] , backup_mysql, dst)
-                print('\n! Copy backup mysql: %s' % cmd)
-                cmd_run(cmd, log, log_err)
-
-            # backup_postgresq section
-            # todo
-
-            # compress section
-            if 'backup_compress' in x[32]:
-                x[32].remove('backup_compress')
-                src = backup_compress
-                dst = u"%s/%s/." % (x[38], backup_frequency)
-                log_write(log_resume, (' Connection rsync/copy incremental: %s' % (dst)))
-
-                cmd = "%s %s %s" % (x[31] , src, dst)
-                print('\n! Copy backup compress: %s' % cmd)
-                cmd_run(cmd, log, log_err)
-
-            # copy others objects
-            if x[32]:
-                for src in x[32]:
-                    dst = u"%s/%s" % (x[38], backup_incremental)
-                    log_write(log_resume, ('Connection rsync/copy incremental: %s' % (dst)))
-
-                    exclude = ""
-                    for xx in x[33]:
-                        exclude += "--exclude=\'%s\' " % xx
-
-                    cmd = "%s %s %s %s" % (x[31], exclude, src, dst)
-                    print('\n! Copy objects: %s' % cmd)
-                    cmd_run(cmd, log, log_err)
-
-
-    # # # # # # # # # # # # # # # # # # # # # # # #
-    # ssh/rsync to remote server
-    if x[70]:
-        print('\n! Rsync / ssh to remote server')
-
-        if x[45] == "password":
-            rsync = "sshpass -p \"%s\" rsync %s -e \"ssh -p %s\" %s %s@%s:%s" % ( x[48] , x[44] , x[42] , backup_base , x[47] , x[41] , x[43] )
-
-        if x[45] == "pemfile":
-            rsync = "rsync %s -e \"ssh -p %s -i %s\" %s %s@%s:%s" % ( x[44] , x[42] , x[46] , backup_base , x[47] , x[41] , x[43] )
-
-        if x[45] == "authorized":
-            rsync = "rsync %s -e \"ssh -p %s \" %s %s@%s:%s" % ( x[44] , x[42] , backup_base , x[47] , x[41] , x[43] )
-
-        cmd_run(rsync, log, log_err)
-        log_write(log_resume, ('Backup rsync: %s' % (backup_base)))
-
-
-    # # # # # # # # # # # # # # # # # # # # # # # #
-    # aws s3 bucket
-    if x[50]:
-        print('\n! AWS S3 Bucket')
-        log_write(log_resume, ('AWS s3 bucket     : %s' % (x[54])))
-
-        '''
-        command
-            # output s3://bucket-name/incremental
-            # output s3://bucket-name/<frequency>
-
-        backup_base          = '/tmp/example'
-        backup_compress      = '/tmp/example/compress'
-        backup_compress_file = '/tmp/example/compress/home.tar.gz'
-        backup_compress_file = '/tmp/example/compress/www.tar.gz'
-        backup_compress_file = '/tmp/example/compress/etc.tar.gz'
-        '''
-        # # # # # # # #
-        # aws s3 incremental section
-        backup_incremental = False
-        if x[55]:
-            backup_incremental = x[56]
-
-            # aws incremental + backup_base
-            if 'backup_base' in x[55]:
-                x[55].remove('backup_base') # remove string
-
-                src = backup_base # add path
-                dst = backup_incremental
-                log_write(log_resume, ('AWS s3 incremental: %s' % (dst)))
-
-                cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
-                cmd_run(cmd_aws, log, log_err)
-                print('\n! Copy backup base to AWS S3 Bucket: %s' % backup_base)
-
-            # aws + incremental + backup_mysql
-            if 'backup_mysql' in x[55]:
-                x[55].remove('backup_mysql')
-
-                src = backup_mysql
-                dst = u"%s/%s" % (backup_incremental, 'db-mysql')
-                log_write(log_resume, ('AWS s3 incremental: %s' % (dst)))
-
-                cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
-                cmd_run(cmd_aws, log, log_err)
-                print('\n! Copy backup mysql to AWS S3 Bucket: %s' % backup_mysql)
-
-            # aws + incremental + backup_postgresql
-            # todo
-
-            # incremental + compress
-            if 'backup_compress' in x[55]:
-                x[55].remove('backup_compress')
-
-                src = backup_compress
-                dst = u"%s/%s" % (backup_incremental, 'compress')
-                log_write(log_resume, ('AWS s3 incremental: %s' % (dst)))
-                cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
-                cmd_run(cmd_aws, log, log_err)
-                print('\n! Copy backup compress to AWS S3 Bucket: %s' % backup_compress)
-
-            # copy others objects to AWS
-            if x[55]:
-                for src in x[55]:
-                    # src must have full path, start /
-                    dst = u"%s%s" % (backup_incremental, src)
-                    log_write(log_resume, ('AWS s3 incremental: %s' % (dst)))
-
-                    cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
-                    cmd_run(cmd_aws, log, log_err)
-                    print('\n! Copy other backup to AWS S3 Bucket: %s' % src)
-
-
-        # # # # # # # # # # # # #
-        # aws frequency section
-        backup_frequency = False
-        if x[57]: # to check not empty src list
-
-            # once backup
-            if x[59] == 'once':
-                backup_frequency = '%s/%s' % (x[58], dateformat('once', x[60]))
-
-            # daily backup
-            if x[59] == 'daily':
-                backup_frequency = '%s/%s' % (x[58], dateformat('daily', x[60]))
-
-            # weekly backup
-            if x[59] == 'week-full':
-                backup_frequency = '%s/%s' % (x[58], dateformat('week-full', x[60]))
-
-            # monthly backup
-            if x[59] == 'month-full':
-                backup_frequency = '%s/%s' % (x[58], dateformat('month-full', x[60]))
-
-            # frequency + base
-            if 'backup_base' in x[57]:
-                x[57].remove('backup_base') # remove string
-                src = backup_base
-                dst = backup_frequency
-                log_write(log_resume, ('AWS s3 frequency  : %s' % (dst)))
-                cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
-                cmd_run(cmd_aws, log, log_err)
-                print('\n! Copy backup base to AWS S3 Bucket: %s' % backup_base)
-
-            # frequency + mysql
-            if 'backup_mysql' in x[57]:
-                x[57].remove('backup_mysql')
-                src = backup_mysql
-                dst = u"%s/%s" % (backup_frequency, 'db-mysql')
-                log_write(log_resume, ('AWS s3 frequency  : %s' % (dst)))
-                cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
-                cmd_run(cmd_aws, log, log_err)
-                print('\n! Copy backup mysql to AWS S3 Bucket: %s' % backup_mysql)
-
-            # frequency + compress
-            if 'backup_compress' in x[57]:
-                x[57].remove('backup_compress')
-
-                src = backup_compress
-                dst = u"%s/%s" % (backup_frequency, 'compress')
-                log_write(log_resume, ('AWS s3 frequency  : %s' % (dst)))
-                cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
-                cmd_run(cmd_aws, log, log_err)
-                print('\n! Copy backup compress to AWS S3 Bucket: %s' % backup_compress)
-
-            # frequency + postgresql
-            if 'backup_postgresql' in x[57]:
-                x[57].append(backup_postgresql)
-                x[57].remove('backup_postgresql')
-
-            # copy others objects to AWS
-            if x[57]:
-                for src in x[57]:
-                    print('\n! Copy other backup to AWS S3 Bucket: %s' % src)
-                    # src must have full path, start /
-                    dst = u"%s%s" % (backup_frequency, src)
-                    log_write(log_resume, ('AWS s3 frequency  : %s' % (dst)))
-                    cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
-                    cmd_run(cmd_aws, log, log_err)
-
+    '''
+    all backup data is ready to be copy from here
+    copy to?
+        connection
+    '''
+    # connection rsync copy localhost
+    from parts.rsync_copy_localhost import *
+    rsync_copy_localhost(x, log, log_err, log_resume, backup_base, backup_mysql, backup_compress)
+
+    # connection aws s3 bucket
+    from parts.aws_s3_bucket import *
+    aws_s3_bucket(x, log, log_err, log_resume, backup_base, backup_mysql, backup_compress)
+
+    # connection ssh-rsync
+    from parts.ssh_rsync import *
+    ssh_rsync(x, log, log_err, log_resume, backup_base, backup_mysql, backup_compress)
 
     # # #
     # resume end
     from parts.resume import *
     end_time, duration = resume_finish(settings, log, log_err, backup_base, backup_log, start_time)
+    # write resume to log
     log_write(log_resume, ('\nSize mysql     : %s' % (size_mysql)))
     log_write(log_resume, ('Size postgresql: %s' % (size_postgresql)))
     log_write(log_resume, ('Size compress  : %s' % (size_compress)))
@@ -555,26 +264,19 @@ for cfg in args.integers:
     log_send_copy_to(x, log, log_err, backup_log, 'rsync-copy-localhost')
 
     # # #
-    # sendmail section
-    #from section.sendmail import *
-    #sendmail()
-    '''
-    # # # # # # # # # #
     # sendmail report section
     # if log.err not empty then sendmail to report
     if x[3] == True and not os.stat("%s" % log_err).st_size == 0:
-        msg = ('! Send backup report mail to admin')
-        print('\n'+msg)
+        msg = ('Send backup report mail to admin')
+        p_lv0(msg)
         log_write(log, msg)
         sendmail(x[4], x[0], x[5], log_err, log, False, log_resume)
 
-
-    # # # # # # # # # #
+    # # #
     # delete after read log files
     if x[1] == True:
-        msg = ('! Delete temporary folder or external disk backup')
-        print('\n'+msg)
+        msg = ('Delete temporary folder or external disk backup')
+        p_lv0(msg)
         log_write(log, msg)
         clean = 'rm -rf %s' % (backup_base)
         cmd_run(clean, log, log_err)
-    '''

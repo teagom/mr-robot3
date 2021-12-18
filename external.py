@@ -1,12 +1,26 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 import os, sys, subprocess
 from datetime import datetime
-from settings import debug, smtp_sender, smtp_port, smtp_server, smtp_username, smtp_password, report_log_success
+from settings import debug_log, debug_cmdrun, smtp_sender, smtp_port, smtp_server, smtp_username, smtp_password, report_log_success
 
 from smtplib import SMTP_SSL as SMTP
 from email.message import EmailMessage
+
+# print level 0
+def p_lv0(msg):
+    print('\n!',msg)
+
+# print level 1
+def p_lv1(msg):
+    print('  +',msg)
+
+# print level 2
+def p_lv2(msg):
+    print('    ',msg)
+
+def p_lv3(msg):
+    print('      ',msg)
 
 
 def log_write(file=False, value=False):
@@ -16,9 +30,10 @@ def log_write(file=False, value=False):
     if not file or not value:
         return False
 
-    if debug:
-        print('\nYou are seeing this message because debug is True')
-        print('> Writing in', file)
+    if debug_log:
+        p_lv1('log write')
+        p_lv3('You are seeing this message because debug_log is True')
+        p_lv3('Writing in %s' % file)
 
     # open file
     of = open(file, 'a')
@@ -36,9 +51,11 @@ def cmd_run(cmd, log=False, log_err=False):
     return  result to variable
     cmd:    string command bash
     '''
-    if debug:
-        print('\nYou are seeing this message because debug is True')
-        print('>',cmd)
+    p_lv1('cmd run')
+
+    if debug_cmdrun:
+        p_lv2('You are seeing this message because debug_cmdrun is True')
+        p_lv2(cmd)
 
     pipe = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     res = pipe.communicate()
@@ -50,12 +67,12 @@ def cmd_run(cmd, log=False, log_err=False):
 
         if res[0]:
             for line in res[0].decode(encoding='utf-8').split('\n'):
-                print(line)
+                #print(line)
                 log_write(log, line)
 
         if res[1]:
             for line in res[1].decode(encoding='utf-8').split('\n'):
-                print(line)
+                #print(line)
                 log_write(log, line)
 
     # error
@@ -65,12 +82,12 @@ def cmd_run(cmd, log=False, log_err=False):
 
         if res[0]:
             for line in res[0].decode(encoding='utf-8').split('\n'):
-                print(line)
+                #print(line)
                 log_write(log_err, line)
 
         if res[1]:
             for line in res[1].decode(encoding='utf-8').split('\n'):
-                print(line)
+                #print(line)
                 log_write(log_err, line)
 
 
@@ -81,13 +98,15 @@ def sendmail(to, app, subject=False, attach0=False, attach1=False, smtp_test=Fal
     attach1 : sucess log
     log_resume: resume text log file
     '''
+    p_lv0('Send backup report mail to admin')
+
     destination = []
     for x in to:
         destination.append(x)
 
     if not destination:
-        print('- Error trying send a mail. Check settings.')
-        print('- [To] are empty. To check config[5]')
+        p_lv1('Error trying send a mail. Check settings.')
+        p_lv1('[to] are empty. To check config[4]')
         return False
 
     # new message
@@ -138,11 +157,11 @@ def sendmail(to, app, subject=False, attach0=False, attach1=False, smtp_test=Fal
         conn.sendmail(smtp_sender, destination, msg.as_string())
         conn.close()
     except Exception as e:
-        print('- Error trying send a mail. Check settings.')
-        print("- Error: ", e)
+        p_lv1('-Error trying send a mail. Check settings.')
+        p_lv1("-Error: ", e)
         return False
     else:
-        print("+ Email sent!")
+        p_lv1("Email sent")
         return True
 
 # date format

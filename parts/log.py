@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import re
@@ -6,7 +5,7 @@ import sys, argparse, settings, os
 from slugify import slugify
 from datetime import datetime
 from external import cmd_run, sendmail, dateformat, log_write,\
-        mysqlshow
+        mysqlshow, p_lv0, p_lv1, p_lv2, p_lv3
 
 parser = argparse.ArgumentParser()
 parser.add_argument('integers', metavar='file.py', type=str, nargs='+', help='Python file, parameters to make backup. See example.py')
@@ -83,59 +82,52 @@ def log_send_copy_to(x=None, log=None, log_err=None, backup_log=None, connection
         print('  fail')
         return False
 
-    msg = ('\n! Log send copy to')
-    print(msg)
-
+    p_lv0('Log send copy to')
     src = backup_log
 
     # connection aws s3 bucket
     if connection == 'aws-s3-bucket':
-        print ('  connection AWS S3 Bucket')
+        p_lv1('connection AWS S3 Bucket')
+
         if x[50] == True and connection == 'aws-s3-bucket':
-            msg = ('  AWS %s/%s' % (x[54],x[56]))
-            print('\n'+msg)
+            p_lv1('AWS %s/%s' % (x[54],x[56]))
 
             # incremental
-            if backup_incremental != False:
-                print('  ', backup_incremental)
+            if x[56] != False:
+                p_lv1('Incremental')
                 dst = u"%s/%s" % (x[56], 'log')
                 cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
                 cmd_run(cmd_aws, log, log_err)
-
             # frequency
-            if backup_frequency != False:
-                #msg = ('! AWS copy log files to %s/%s frequency' % (x[54],x[56]))
-                #print('\n'+msg)
-                print('  ', backup_frequency)
-                dst = u"%s/%s" % (backup_frequency, 'log')
+            if x[58] != False:
+                p_lv1('Frequency')
+                dst = u"%s/%s" % (x[58], 'log')
                 cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
                 cmd_run(cmd_aws, log, log_err)
         else:
-            print('  None')
+            p_lv1('None')
 
 
     # connection rsync/copy localhost
     if x[30] == True and connection == 'rsync-copy-localhost':
-        print('  connection rsync/copy localhost')
+        p_lv1('connection rsync/copy localhost')
 
         # incremental
         backup_incremental = x[34]
         if backup_incremental != False:
-            print('  format incremental')
+            p_lv2('incremental')
             dst = u"%s/%s" % (x[38], x[34])
             cmd = "%s %s %s" % (x[31], src, dst)
-            print('\n  copy objects: %s' % cmd)
+            p_lv1('copy objects: %s' % cmd)
             cmd_run(cmd, log, log_err)
 
         # frequency
         backup_frequency = x[37] # path
         if backup_frequency != False:
-            print('  format frequency')
-            # frequency/<datet-time>/log ?
-
+            p_lv2('frequency')
             dst = u"%s/%s" % (x[38], backup_frequency)  # root + path
             cmd = "%s %s %s" % (x[31], src, dst)
-            print('\n  copy objects: %s' % cmd)
+            p_lv3('copy objects: %s' % cmd)
             cmd_run(cmd, log, log_err)
 
     # TODO
