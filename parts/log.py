@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('integers', metavar='file.py', type=str, nargs='+', help='Python file, parameters to make backup. See example.py')
 args = parser.parse_args()
 
-print('\n! Section log')
+p_lv0('Section log')
 
 def log_start(settings, x, cfg, backup_base, backup_log):
     '''
@@ -19,19 +19,20 @@ def log_start(settings, x, cfg, backup_base, backup_log):
     touch initial files
     return True
     '''
-    print('  log mkdir')
+    p_lv1('Start')
 
     # log folder
+    p_lv2('mkdir folder')
     backup_log = '%s/%s' % (backup_base, 'log')
     backup_log_cmd = 'mkdir -p %s' % (backup_log)
     cmd_run(backup_log_cmd)
 
     # log files
-    print('  Log clean files')
+    p_lv2('Clean file and folder')
     clean_log = 'rm -f %s/*' % backup_log
     cmd_run(clean_log)
 
-    print('  Log creating files')
+    p_lv2('creating files')
     log = "%s/success.log" % backup_log
     log_err = "%s/error.log" % backup_log
     log_resume = "%s/resume.log" % backup_log
@@ -43,11 +44,13 @@ def log_start(settings, x, cfg, backup_base, backup_log):
 
 
 def log_finish(settings, x, cfg, backup_base, backup_log):
+    p_lv1('Finish')
+
     end_time = datetime.now()
     duration = (end_time - start_time)
-    print('! Start date-time: {}'.format(start_time.strftime(settings.touch_format)))
-    print('! End date-time: {}'.format(end_time.strftime(settings.touch_format)))
-    print('! Duration: {}'.format(duration))
+    p_lv2('Start date-time: {}'.format(start_time.strftime(settings.touch_format)))
+    p_lv2('End date-time: {}'.format(end_time.strftime(settings.touch_format)))
+    p_lv2('Duration: {}'.format(duration))
 
     # touch end
     touch_log_end = "%s/%s%s" % (backup_log, settings.touch_end, end_time.strftime(settings.touch_format))
@@ -56,10 +59,9 @@ def log_finish(settings, x, cfg, backup_base, backup_log):
 
     # # # # # # # # # #
     # resume section
-    print('> Calculating backup base size...')
     cmd = 'du -sh %s' % (backup_base)
     size_base = str(os.popen(cmd).read().replace('\n',''))
-    print(size_base)
+    p_lv2('Backup base size: %s' % size_base)
 
     # resume
     log_write(log_resume, ('\nSize mysql     : %s' % (size_mysql)))
@@ -82,49 +84,46 @@ def log_send_copy_to(x=None, log=None, log_err=None, backup_log=None, connection
         print('  fail')
         return False
 
-    p_lv0('Log send copy to')
+    p_lv1('Send copy to')
     src = backup_log
 
     # connection aws s3 bucket
     if connection == 'aws-s3-bucket':
-        p_lv1('connection AWS S3 Bucket')
+        p_lv2('connection AWS S3 Bucket')
 
         if x[50] == True and connection == 'aws-s3-bucket':
-            p_lv1('AWS %s/%s' % (x[54],x[56]))
+            p_lv2('AWS %s/%s' % (x[54],x[56]))
 
             # incremental
             if x[56] != False:
-                p_lv1('Incremental')
+                p_lv2('Incremental')
                 dst = u"%s/%s" % (x[56], 'log')
                 cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
                 cmd_run(cmd_aws, log, log_err)
             # frequency
             if x[58] != False:
-                p_lv1('Frequency')
+                p_lv2('Frequency')
                 dst = u"%s/%s" % (x[58], 'log')
                 cmd_aws = "%s %s %s %s %s/%s" % (x[51], x[52], x[53], src, x[54], dst)
                 cmd_run(cmd_aws, log, log_err)
-        else:
-            p_lv1('None')
-
 
     # connection rsync/copy localhost
     if x[30] == True and connection == 'rsync-copy-localhost':
-        p_lv1('connection rsync/copy localhost')
+        p_lv2('connection rsync/copy localhost')
 
         # incremental
         backup_incremental = x[34]
         if backup_incremental != False:
-            p_lv2('incremental')
+            p_lv3('incremental')
             dst = u"%s/%s" % (x[38], x[34])
             cmd = "%s %s %s" % (x[31], src, dst)
-            p_lv1('copy objects: %s' % cmd)
+            p_lv3('copy objects: %s' % cmd)
             cmd_run(cmd, log, log_err)
 
         # frequency
         backup_frequency = x[37] # path
         if backup_frequency != False:
-            p_lv2('frequency')
+            p_lv3('frequency')
             dst = u"%s/%s" % (x[38], backup_frequency)  # root + path
             cmd = "%s %s %s" % (x[31], src, dst)
             p_lv3('copy objects: %s' % cmd)
