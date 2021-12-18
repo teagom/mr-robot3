@@ -64,15 +64,14 @@ def cmd_run(cmd, log=False, log_err=False):
     if pipe.returncode == 0:
         msg = u"\n+ command: %s" % (cmd)
         log_write(log, msg)
+        p_lv2('+ Success')
 
         if res[0]:
             for line in res[0].decode(encoding='utf-8').split('\n'):
-                #print(line)
                 log_write(log, line)
 
         if res[1]:
             for line in res[1].decode(encoding='utf-8').split('\n'):
-                #print(line)
                 log_write(log, line)
 
     # error
@@ -81,13 +80,15 @@ def cmd_run(cmd, log=False, log_err=False):
         log_write(log_err, msg)
 
         if res[0]:
+            p_lv2('- Error')
             for line in res[0].decode(encoding='utf-8').split('\n'):
-                #print(line)
+                p_lv3(line)
                 log_write(log_err, line)
 
         if res[1]:
+            p_lv2('- Error')
             for line in res[1].decode(encoding='utf-8').split('\n'):
-                #print(line)
+                p_lv3(line)
                 log_write(log_err, line)
 
 
