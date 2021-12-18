@@ -1,12 +1,10 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import re
 import sys, argparse, settings, os
 from slugify import slugify
 from datetime import datetime
-from external import cmd_run, sendmail, dateformat, log_write,\
-        mysqlshow, p_lv0, p_lv1, p_lv2
+from external import cmd_run, sendmail, log_write, mysqlshow, p_lv0, p_lv2
 
 parser = argparse.ArgumentParser()
 parser.add_argument('integers', metavar='file.py', type=str, nargs='+', help='Python file, parameters to make backup. See example.py')
@@ -38,7 +36,6 @@ for cfg in args.integers:
         print('\n! Testing SMTP settings...')
         sendmail(x[4], x[0], False, False, False, True, False)
         sys.exit('> Break script. Set SMTP test to False to continue.')
-
 
     # # # # # # # # # # # # # # # # # # # # # # # #
     # create destination folder and logs
@@ -90,23 +87,9 @@ for cfg in args.integers:
     backup_mysql =  False
     backup_postgresql =  False
 
-    # # # # # # # # # # # # # # # # # # # # # # # #
+    # # #
     # dump data base and compress
     if x[10]:
-
-        '''
-        Folder struct
-        backup_base       = '/tmp/example'
-        backup_mysql      = '/tmp/example/db-mysql'
-                                                    /db-name0.tar.gz
-                                                    /db-name1.tar.gz
-                                                    /db-nameN.tar.gz
-        backup_postgresql = '/tmp/example/db-postgresql'
-                                                    /db-name0.tar.gz
-                                                    /db-name1.tar.gz
-                                                    /db-nameN.tar.gz
-        '''
-
         print('\n! Backup Data Base')
 
         # postgres
@@ -171,17 +154,9 @@ for cfg in args.integers:
             p_lv2('No Mysql database to make backup.')
 
 
-    # # # # # # # # # # # # # # # # # # # # # # # #
+    # # #
     # compress file and folder section
     if x[20]:
-        '''
-        struct of folder
-        backup_base          = '/tmp/example'
-        backup_compress      = '/tmp/example/compress'
-        backup_compress_file = '/tmp/example/compress/home.tar.gz'
-        backup_compress_file = '/tmp/example/compress/www.tar.gz'
-        backup_compress_file = '/tmp/example/compress/etc.tar.gz'
-        '''
         print('\n! Compress Section file and folder')
 
         dest = 'compress'
@@ -214,7 +189,7 @@ for cfg in args.integers:
         p_lv2('Calculating compress section size: %s' % size_compress)
 
 
-    # # # # # # # # # # # # # # # # # # # # # # # #
+    # # #
     # set permission
     # change permission before transfer to preserve
     # permission at remove server.
@@ -226,27 +201,21 @@ for cfg in args.integers:
         c = "chmod %s %s -R" % (x[102], backup_base)
         cmd_run(c, log, log_err)
 
-
-    '''
-    all backup data is ready to be copy from here
-    copy to?
-        connection
-    '''
-    # connection rsync copy localhost
-    from parts.rsync_copy_localhost import *
+    # # #
+    # connection
+    # rsync copy localhost
+    from parts.rsync_copy_localhost import rsync_copy_localhost
     rsync_copy_localhost(x, log, log_err, log_resume, backup_base, backup_mysql, backup_compress)
-
-    # connection aws s3 bucket
-    from parts.aws_s3_bucket import *
+    # aws s3 bucket
+    from parts.aws_s3_bucket import aws_s3_bucket
     aws_s3_bucket(x, log, log_err, log_resume, backup_base, backup_mysql, backup_compress)
-
-    # connection ssh-rsync
-    from parts.ssh_rsync import *
+    # ssh-rsync
+    from parts.ssh_rsync import ssh_rsync
     ssh_rsync(x, log, log_err, log_resume, backup_base, backup_mysql, backup_compress)
 
     # # #
     # resume end
-    from parts.resume import *
+    from parts.resume import resume_finish
     end_time, duration = resume_finish(settings, log, log_err, backup_base, backup_log, start_time)
     # write resume to log
     log_write(log_resume, ('\nSize mysql     : %s' % (size_mysql)))
@@ -259,7 +228,7 @@ for cfg in args.integers:
 
     # # #
     # log section
-    from parts.log import *
+    from parts.log import log_send_copy_to
     log_send_copy_to(x, log, log_err, backup_log, 'aws-s3-bucket')
     log_send_copy_to(x, log, log_err, backup_log, 'rsync-copy-localhost')
 
@@ -279,4 +248,4 @@ for cfg in args.integers:
         p_lv0(msg)
         log_write(log, msg)
         clean = 'rm -rf %s' % (backup_base)
-        cmd_run(clean, log, log_err)
+        cmd_run(clean)
