@@ -170,7 +170,7 @@ def dateformat(freq, hour):
     '''
         return date format based in frequency set
     '''
-    if hour == False:
+    if hour == False or hour == 'False':
         if freq == 'daily':
             return "%s" % (datetime.now().strftime("%A-%d-%b-%Y").lower()) # sunday-28-dez-2014
         if freq == 'month-full':
