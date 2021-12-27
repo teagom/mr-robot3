@@ -170,17 +170,24 @@ def dateformat(freq, hour):
     '''
         return date format based in frequency set
     '''
-    if freq == 'daily':
-        return "%s_%s" % (datetime.now().strftime("%A-%d-%b-%Y").lower(), hour) # sunday-28-dez-2014_14h00
-
-    if freq == 'month-full':
-        return "%s-%s" % (datetime.now().strftime("%d").lower(), hour) # 28-14h00m
-
-    if freq == 'week-full':
-        return '%s-%s' % (datetime.now().strftime("%A").lower(), hour) # sunday-14h00m
-
-    if freq == 'once':
-        return  hour # 14h00m (hour-min)
+    if hour == False:
+        if freq == 'daily':
+            return "%s" % (datetime.now().strftime("%A-%d-%b-%Y").lower()) # sunday-28-dez-2014
+        if freq == 'month-full':
+            return "%s" % (datetime.now().strftime("%d").lower()) # 28
+        if freq == 'week-full':
+            return '%s' % (datetime.now().strftime("%A").lower()) # sunday
+        if freq == 'once':
+            return  'once'
+    else:
+        if freq == 'daily':
+            return "%s_%s" % (datetime.now().strftime("%A-%d-%b-%Y").lower(), hour) # sunday-28-dez-2014_14h00
+        if freq == 'month-full':
+            return "%s-%s" % (datetime.now().strftime("%d").lower(), hour) # 28-14h00m
+        if freq == 'week-full':
+            return '%s-%s' % (datetime.now().strftime("%A").lower(), hour) # sunday-14h00m
+        if freq == 'once':
+            return  hour # 14h00m (hour-min)
 
 
 def mysqlshow(log, log_err, ignore_list):
