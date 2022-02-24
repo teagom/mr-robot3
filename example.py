@@ -53,7 +53,7 @@ content of file
 config[10] = False      # backup mysql (True|False)
 config[11] = 'mysql'    # db server (mysql)
 config[12] = '127.0.0.1'# host
-config[13] = [None]     # if value is equal 'ALL', sensitive case!
+config[13] = ['ALL']     # if value is equal 'ALL', sensitive case!
                         # string ALL : all databases but you can ignore
                         # ignore list: array ['DataBase0','DataBase1',...]
                         # output: /tmp/example/mysql/database-name.tar.gz
@@ -61,6 +61,11 @@ config[14] = 'root' # user
 config[15] = 'pass' # pass
 config[16] = '~/.my.cnf' # config file to dump
 config[17] = ['Database','sys','performance_schema','information_schema'] # ignore these databases, databases default
+config[18] = [None] # (None|string) custom date at filename or None
+            # if None, overwrite last:
+            # output: /tmp/example/db-mysql/database-name.tar.gz
+            # if (custon/string) '%d-%b-%Y', dont overwrite last, https://strftime.org/
+            # output: /tmp/example/db-mysql/database-name-31-Dez-2022.tar.gz
 # end mysql
 
 
@@ -69,6 +74,11 @@ config[17] = ['Database','sys','performance_schema','information_schema'] # igno
 config[20] = False # compact file and folder, recursive mode on.
 config[21] = ['/etc/ssh/','/etc/samba/','/etc/apache2','/etc/mysql'] # include folder or file
 config[22] = [] # do not include folder or file, https://man7.org/linux/man-pages/man1/tar.1.html
+config[23] = [None] # custom date at filename or None
+            # if None, overwrite last:
+            # output: /tmp/example/db-mysql/database-name.tar.gz
+            # if (custon/string) '%d-%b-%Y', dont overwrite last, https://strftime.org/
+            # output: /tmp/example/db-mysql/database-name-31-Dez-2022.tar.gz
 # end compress
 
 

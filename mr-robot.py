@@ -132,8 +132,14 @@ for cfg in args.integers:
                     cmd_run(mysqldump_cmd, log, log_err)
 
                     # compact sql file
-                    # output dbname.tar.gz
-                    outputfile_db = u'%s/%s.%s' % (backup_mysql, db, x[6])
+                    if x[18] != None:
+                        mydate = datetime.today().strftime(x[18]) # 01-jan-2022
+                        outputfile_db = u'%s/%s-%s.%s' % (backup_mysql, db, mydate, x[6])
+                        # output dbname-date.tar.gz
+                    else:
+                        outputfile_db = u'%s/%s.%s' % (backup_mysql, db, x[6])
+                        # output dbname.tar.gz
+
                     compact = '%s %s %s %s' % (x[7], x[8], outputfile_db, outputfile_db_tmp)
                     cmd_run(compact, log, log_err)
 
@@ -173,8 +179,15 @@ for cfg in args.integers:
             include = "%s" % xx
             name = slugify(xx)
 
-            # output file
-            backup_compress_file = u'%s/%s.%s' % (backup_compress, name, x[6])
+            # custom filename
+            if x[23] != None:
+                mydate = datetime.today().strftime(x[23]) # 01-jan-2022
+                backup_compress_file = u'%s/%s-%s.%s' % (backup_compress, name, mydate, x[6])
+                # output filename-date.tar.gz
+            else:
+                backup_compress_file = u'%s/%s.%s' % (backup_compress, name, x[6])
+                # output filename.tar.gz
+
             compress_cmd = "%s %s %s %s %s" % (x[7], exclude, x[8], backup_compress_file, include)
             cmd_run(compress_cmd, log, log_err)
 
@@ -243,8 +256,14 @@ for cfg in args.integers:
     # # #
     # delete after read log files
     if x[1] == True:
+        """
+        *** WARING ***
+        safe mode to delete files
+        find files modified last 60min in backup temporary folder
+        """
         msg = ('Delete temporary folder or external disk backup')
         p_lv0(msg)
         log_write(log, msg)
-        clean = 'rm -rf %s' % (backup_base)
+        # files created last 60min
+        clean = "find %s/. -type f -mmin -60 -exec rm {} \;" % (backup_base)
         cmd_run(clean)
